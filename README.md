@@ -1,5 +1,5 @@
-# Reproduction_Pathidea
-reproduction of Pathidea(TSE2021)
+# Reproduction
+reproduction (TSE2021)
 
 - [x] 构建VSM矩阵
 - [ ] 分析日志和堆栈跟踪
@@ -10,10 +10,9 @@ reproduction of Pathidea(TSE2021)
 
 ### 1.1 构建VSM矩阵
 
-1. 从github上获取pathidea开源数据：https://github.com/SPEAR-SE/Pathidea_Data.git
+1. 从github上获取开源数据
 
    ```
-   Pathidea_Data
    │
    ├── bug_reports:				List of bug reports
    │   ├── ActiveMQ	
@@ -27,7 +26,7 @@ reproduction of Pathidea(TSE2021)
    ├── log						List of logged classes extracted from bug reports
    └── path					List of classes that are found on the execution paths
    ```
-
+   
 2. 处理bug_reports中每个项目的错误报告
 
    1. 删除错误报告中的特定关键字。
@@ -81,7 +80,7 @@ reproduction of Pathidea(TSE2021)
       └── Zookeeper zookeeper source code tokens
       ```
 
-5. 将每个项目的错误报告tokens与该项目的java文件的tokens计算余弦相似度得分并排序，将得分结果与pathidea开源数据的vsm的数据进行比较，将得分结果存入vsm_result。
+5. 将每个项目的错误报告tokens与该项目的java文件的tokens计算余弦相似度得分并排序，将得分结果与开源数据的vsm的数据进行比较，将得分结果存入vsm_result。
 
 6. 实现情况，目前已经完成ActiveMQ、HDFS、Hadoop错误报告的vsm得分计算。
 
