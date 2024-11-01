@@ -54,12 +54,12 @@ reproduction (TSE2021)
 3. 获得源代码，本论文共涉及八个开源系统：
 
    1. ActiveMQ(5.15.13)：https://archive.apache.org/dist/activemq/5.15.13/
-   2. Hadoop(2.7.6)：https://archive.apache.org/dist/hadoop/common/hadoop-2.7.6/
-   3. HDFS(2.7.0)：https://archive.apache.org/dist/hadoop/common/hadoop-2.7.0/见hadoop-hdfs-project
+   2. Hadoop(2.7.6)：https://github.com/apache/hadoop
+   3. HDFS(2.7.0)：https://github.com/apache/hadoop 见hadoop-hdfs-project
    4. Hive(2.7.0)：https://archive.apache.org/dist/hive/hive-3.0.0/ 未找到hive2.7.0的release，先使用3.0.0版本进行实验
-   5. MapReduce(3.1.4)：https://archive.apache.org/dist/hadoop/common/hadoop-3.1.4/见hadoop-mapreduce-project
+   5. MapReduce(3.1.4)：https://github.com/apache/hadoop 见hadoop-mapreduce-project
    6. Storm(2.2.0)：https://archive.apache.org/dist/storm/apache-storm-2.2.0/
-   7. Yarn(3.1.2)：https://archive.apache.org/dist/hadoop/common/hadoop-3.1.2/见Hadoop-yarn-project
+   7. Yarn(3.1.2)：https://github.com/apache/hadoop 见Hadoop-yarn-project
    8. Zookeeper(3.6.0)：https://archive.apache.org/dist/zookeeper/zookeeper-3.6.0/
 
 4. 处理源代码中每个java文件
