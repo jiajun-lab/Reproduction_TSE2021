@@ -78,6 +78,10 @@ def analyze_project_source_code(source_code_directory, language):
     # 遍历目录及其子目录
     for root, dirs, files in os.walk(source_code_directory):
         for file in files:
+            # 不考虑源代码测试用例
+            if 'test' in root.split(os.path.sep):
+                continue
+
             if file.endswith('.' + language):
                 file_path = os.path.join(root, file)
 
