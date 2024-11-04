@@ -29,8 +29,10 @@ def calculate_stack_trace_score(stack_traces):
     stack_trace_score = defaultdict(float)
     rank_score_map = [1.0, 0.5, 0.33, 0.25, 0.2, 0.17, 0.14, 0.12, 0.11, 0.1]  # 前10名的分数
 
+    # 反转堆栈跟踪列表，使得越靠后的文件先被处理
+    reversed_stack_traces = stack_traces[::-1]
     current_rank = 0
-    for trace in stack_traces:
+    for trace in reversed_stack_traces:
         file_name = trace[1]  # 提取文件名
         if current_rank < len(rank_score_map):
             stack_trace_score[file_name] = rank_score_map[current_rank]
@@ -86,17 +88,17 @@ if __name__ == '__main__':
     '''
         处理bug_report并获取该报告的日志和堆栈跟踪信息
     '''
-    directory = 'bug_reports/ActiveMQ/details'
+    directory = 'bug_reports/Zookeeper/details'
 
     items = os.listdir(directory)
 
     # 仅获取文件，忽略文件夹
-    files = [item.strip('.json') for item in items if os.path.isfile(os.path.join(directory, item))]
+    files = [item.replace('.json', '') for item in items if os.path.isfile(os.path.join(directory, item))]
     print(files)
 
     log_scores = []
     for name in files:
-        with open('bug_reports/ActiveMQ/' + name + '.json', 'r') as f:
+        with open('bug_reports/Zookeeper/' + name + '.json', 'r') as f:
             data = json.load(f)
 
         # 判断是否含有log或堆栈跟踪信息
@@ -104,15 +106,28 @@ if __name__ == '__main__':
         if log_text is not None:
             # 分析日志并输出结果
             result = analyze_bug_report(log_text)
-            # print('bug_reports/ActiveMQ/' + name + '.json'+"文件可疑性分数:")
+            # print('bug_reports/Zookeeper/' + name + '.json'+"文件可疑性分数:")
             temp_score = []
             for file, score in result.items():
                 # print(f"{file}: {score:.2f}")
                 temp_score.append([file, score])
-            log_scores.append(['bug_reports/ActiveMQ/' + name + '.json', temp_score])
+                # 按照得分从大到小排序
+                sorted_temp_score = sorted(temp_score, key=lambda x: x[1], reverse=True)
+            log_scores.append([name, sorted_temp_score])
 
-    sorted_log_scores = sorted(log_scores, key=lambda x: x[0], reverse=True)
-    print(len(sorted_log_scores))
-    for item in sorted_log_scores:
-        print(item)
+    # sorted_log_scores = sorted(log_scores, key=lambda x: x[0], reverse=True)
+    print(f"共处理了 {len(log_scores)} 个错误报告。")
 
+    # 创建log_result目录（如果不存在）
+    output_dir = 'log_result'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for item in log_scores:
+        name, temp_score = item
+        # 写入到log_result/{name}_log.txt
+        output_file = os.path.join(output_dir, f"{name}_log.txt")
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for file_name, score in temp_score:
+                f.write(f"{file_name}: {score:.2f}\n")
+        print(f"已将结果写入文件：{output_file}")
