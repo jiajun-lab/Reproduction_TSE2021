@@ -112,6 +112,12 @@ if __name__ == '__main__':
             # 判断是否含有log或堆栈跟踪信息
             log_text = get_log_text(data)
             if log_text is not None:
+                 # 导出日志
+                if not os.path.exists('log_texts/' + project_name):
+                    os.mkdir('log_texts/' + project_name)
+                with open('log_texts/' + project_name + '/' + name + '_logtext.txt', 'w') as f:
+                    f.write(log_text)
+
                 # 分析日志并输出结果
                 result = analyze_bug_report(log_text)
                 # print('../ProcessData/bug_reports/Zookeeper/' + name + '.json'+"文件可疑性分数:")
