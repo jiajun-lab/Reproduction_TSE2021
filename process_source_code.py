@@ -71,7 +71,7 @@ def analyze_project_source_code(source_code_directory, language):
     language (str): 编程语言（如 'java'）。
     """
     # 创建 source_code_tokens 目录（如果不存在）
-    output_base_dir = 'source_code_tokens'
+    output_base_dir = '../ProcessData/source_code_tokens'
     if not os.path.exists(output_base_dir):
         os.makedirs(output_base_dir)
 
@@ -115,8 +115,10 @@ def analyze_project_source_code(source_code_directory, language):
 
 if __name__ == "__main__":
     # 指定源代码的目录路径
-    source_code_directory = '/Users/lijiajun/Desktop/RA/program/pathidea/zookeeper'  # 请将此路径替换为您的实际路径
-    language = 'java'
+    projects = ["ActiveMQ", "Hadoop", "HDFS", "Hive", "MAPREDUCE", "Storm", "YARN", "Zookeeper"]
+    for project in projects:
+        source_code_directory = '../project_version_in_paper/'+ project  # 请将此路径替换为您的实际路径
+        language = 'java'
 
-    # 分析并处理源代码
-    analyze_project_source_code(source_code_directory, language)
+        # 分析并处理源代码
+        analyze_project_source_code(source_code_directory, language)

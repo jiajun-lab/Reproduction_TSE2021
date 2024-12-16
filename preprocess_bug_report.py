@@ -110,20 +110,22 @@ if __name__ == "__main__":
     '''
         处理bug_reports并保存为bug_reports_tokens
     '''
-    directory = 'bug_reports/ActiveMQ/details'
+    projects = ["ActiveMQ", "Hadoop", "HDFS", "MAPREDUCE", "Hive", "Storm", "YARN", "Zookeeper"]
+    for project in projects:
+        directory = '../ProcessData/bug_reports/'+ project + '/details'
 
-    items = os.listdir(directory)
+        items = os.listdir(directory)
 
-    # 仅获取文件，忽略文件夹
-    files = [item.strip('.json') for item in items if os.path.isfile(os.path.join(directory, item))]
-    print(files)
+        # 仅获取文件，忽略文件夹
+        files = [item.strip('.json') for item in items if os.path.isfile(os.path.join(directory, item))]
+        print(files)
 
-    for name in files:
-        with open('bug_reports/ActiveMQ/' + name + '.json', 'r') as f:
-            data = json.load(f)
+        for name in files:
+            with open('../ProcessData/bug_reports/' + project + '/' + name + '.json', 'r') as f:
+                data = json.load(f)
 
-        processed_tokens = process_json(data, 'java')
-        if processed_tokens is not None and len(processed_tokens) > 0:
-            with open('bug_reports_tokens/ActiveMQ/' + name + '_token.txt', 'w') as f:
-                f.write('\n'.join(processed_tokens))
+            processed_tokens = process_json(data, 'java')
+            if processed_tokens is not None and len(processed_tokens) > 0:
+                with open('../ProcessData/bug_reports_tokens/'+ project + name + '_token.txt', 'w') as f:
+                    f.write('\n'.join(processed_tokens))
 

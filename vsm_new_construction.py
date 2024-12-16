@@ -1,4 +1,3 @@
-import numpy as np
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -64,7 +63,7 @@ def get_source_tokens(file_path):
 
 def save_vsm_result(bug_report_name, vsm_results):
     # 创建vsm_result文件夹（如果不存在）
-    output_dir = 'vsm_result'
+    output_dir = '../ProcessData/vsm_result'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -106,7 +105,7 @@ def process_source_file(args):
 if __name__ == '__main__':
 
     # 获取错误报告的 tokens 及对应项目名称和错误报告名称
-    bug_reports_tokens, project_names, bug_report_names = get_bug_tokens("bug_reports_tokens")
+    bug_reports_tokens, project_names, bug_report_names = get_bug_tokens("../ProcessData/bug_reports_tokens")
 
     print(project_names)
     # 定义停用词列表
@@ -118,7 +117,7 @@ if __name__ == '__main__':
         bug_report_text = ' '.join(bug_tokens)
 
         # 获取对应项目下的所有源代码tokens文件
-        source_files = get_source_files("source_code_tokens", project_name)
+        source_files = get_source_files("../ProcessData/source_code_tokens", project_name)
 
         if not source_files:
             print(f"未找到项目 {project_name} 的源代码tokens文件")
@@ -126,7 +125,7 @@ if __name__ == '__main__':
 
         # 准备传递给子进程的参数列表
         args_list = [
-            (bug_report_text, os.path.join("source_code_tokens", project_name, source_file), stop_words)
+            (bug_report_text, os.path.join("../ProcessData/source_code_tokens", project_name, source_file), stop_words)
             for source_file in source_files
         ]
 
@@ -141,4 +140,4 @@ if __name__ == '__main__':
         save_vsm_result(bug_report_name, vsm_results)
 
         # 输出结果
-        print(f"错误报告 {i} ({bug_report_name}) 的相似度分析已完成，并保存到 vsm_result/{bug_report_name}_vsm.txt")
+        print(f"错误报告 {i} ({bug_report_name}) 的相似度分析已完成，并保存到 ../ProcessData/vsm_result/{bug_report_name}_vsm.txt")

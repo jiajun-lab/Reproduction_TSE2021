@@ -96,7 +96,7 @@ if __name__ == '__main__':
         处理bug_report并获取该报告的日志和堆栈跟踪信息
     '''
     for project_name in project_names:
-        directory = 'bug_reports/'+ project_name +'/details'
+        directory = '../ProcessData/bug_reports/'+ project_name +'/details'
 
         items = os.listdir(directory)
 
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
         log_scores = []
         for name in files:
-            with open('bug_reports/' + project_name + '/' + name + '.json', 'r') as f:
+            with open('../ProcessData/bug_reports/' + project_name + '/' + name + '.json', 'r') as f:
                 data = json.load(f)
 
             # 判断是否含有log或堆栈跟踪信息
@@ -114,7 +114,7 @@ if __name__ == '__main__':
             if log_text is not None:
                 # 分析日志并输出结果
                 result = analyze_bug_report(log_text)
-                # print('bug_reports/Zookeeper/' + name + '.json'+"文件可疑性分数:")
+                # print('../ProcessData/bug_reports/Zookeeper/' + name + '.json'+"文件可疑性分数:")
                 temp_score = []
                 for file, score in result.items():
                     # print(f"{file}: {score:.2f}")
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         print(f"共处理了 {len(log_scores)} 个错误报告。")
 
         # 创建log_result目录（如果不存在）
-        output_dir = 'log_result'
+        output_dir = '../ProcessData/log_result'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
