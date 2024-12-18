@@ -48,9 +48,6 @@ def bfs_find_path(current_method, next_method, call_graph):
 
 
 def extract_methods_from_log(log_text):
-    # 正则表达式匹配堆栈跟踪信息
-    stack_pattern = r'\s*at (\S+\.\S+)\.(\S+)\((\S+):(\d+)\)'
-    
     # 正则表达式匹配日志内容中的方法（假设方法格式为小写字母开头）
     log_method_pattern = r'(\w+\.\w+)\('
 
@@ -59,17 +56,20 @@ def extract_methods_from_log(log_text):
     # 遍历日志文本行
     for line in log_text.splitlines():
         # 查找堆栈信息中的方法
-        stack_match = re.match(stack_pattern, line)
+        stack_match = re.match(log_method_pattern, line)
+        log_match = re.match(log_method_pattern, line)
         if stack_match:
             # 提取方法名并添加到结果列表
             class_name, method_name, file, line_num = stack_match.groups()
             method_full_name = f"{class_name}.{method_name}"
             methods.append(process_method_name(method_full_name))
-        
-        # 查找日志内容中的方法
-        log_method_matches = re.findall(log_method_pattern, line)
-        for match in log_method_matches:
-            methods.append(process_method_name(match))
+
+        if log_match:
+            # 提取方法名并添加到结果列表
+            class_name, method_name, file, line_num = stack_match.groups()
+            method_full_name = f"{class_name}.{method_name}"
+            methods.append(process_method_name(method_full_name))
+
     # return methods
     # 去重并保持顺序
     unique_methods = list(dict.fromkeys(methods))  
@@ -171,7 +171,7 @@ def analyze_paths(project_name, log_text, report_name):
 
 if __name__ == "__main__":
     # Example for analyzing paths for a specific project
-    project_name = "YARN"
+    project_name = "Zookeeper"
     
     directory = f'../ProcessData/log_texts/{project_name}'
     if not os.path.exists(directory):
