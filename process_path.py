@@ -6,69 +6,30 @@ from collections import deque
 
 project_names = ["ActiveMQ", "Hadoop", "HDFS", "Hive", "MAPREDUCE", "Storm", "YARN", "Zookeeper"]
 
-def bfs_find_path(current_method, next_method, call_graph):
-    """
-    在调用图中查找从current_method到next_method的所有路径。
-    使用BFS来实现。
-    
-    :param current_method: 当前日志方法
-    :param next_method: 下一个方法
-    :param call_graph: 调用图，字典格式，存储方法及其调用的其他方法
-    :return: 所有从current_method到next_method的路径
-    """
-    # 队列，存储路径，每个元素是路径中的一部分（一个方法）
-    queue = deque([[current_method]])
-    # 存储已经访问过的方法，避免重复遍历
-    visited = set([current_method])
-    # 存储所有的路径
-    paths = []
-
-    # BFS 遍历
-    while queue:
-        # 取出当前路径
-        current_path = queue.popleft()
-        # 获取当前路径的最后一个方法
-        last_method = current_path[-1]
-
-        # 如果找到了目标方法，则记录路径
-        if last_method == next_method:
-            paths.append(current_path)
-            continue
-
-        # 遍历当前方法能调用的其他方法
-        if last_method in call_graph:
-            for called_method in call_graph[last_method]:
-                # 只有未访问过的节点才能继续遍历
-                if called_method not in visited:
-                    visited.add(called_method)
-                    # 将新的路径加入队列
-                    queue.append(current_path + [called_method])
-
-    return paths
-
-
 def extract_methods_from_log(log_text):
-    # 正则表达式匹配日志内容中的方法（假设方法格式为小写字母开头）
-    log_method_pattern = r'(\w+\.\w+)\('
+    # 正则表达式匹配 'at ' 后的类和方法信息
+    pattern = r'at\s+([A-Za-z0-9_.$]+\.[A-Za-z0-9_$]+)\('
 
-    methods = []
+    matches = re.findall(pattern, log_text)
 
-    # 遍历日志文本行
-    for line in log_text.splitlines():
-        # 查找堆栈信息中的方法
-        stack_match = re.match(log_method_pattern, line)
-        log_match = re.match(log_method_pattern, line)
-        if stack_match:
-            # 提取方法名并添加到结果列表
-            class_name, method_name, file, line_num = stack_match.groups()
-            method_full_name = f"{class_name}.{method_name}"
-            methods.append(process_method_name(method_full_name))
+    methods = [method_name for method_name in matches]
 
-        if log_match:
-            # 提取方法名并添加到结果列表
-            class_name, method_name, file, line_num = stack_match.groups()
-            method_full_name = f"{class_name}.{method_name}"
-            methods.append(process_method_name(method_full_name))
+    # # 遍历日志文本行
+    # for line in log_text.splitlines():
+    #     # 查找堆栈信息中的方法
+    #     stack_match = re.match(log_method_pattern, line)
+    #     log_match = re.match(log_method_pattern, line)
+    #     if stack_match:
+    #         # 提取方法名并添加到结果列表
+    #         class_name, method_name, file, line_num = stack_match.groups()
+    #         method_full_name = f"{class_name}.{method_name}"
+    #         methods.append(process_method_name(method_full_name))
+    #
+    #     if log_match:
+    #         # 提取方法名并添加到结果列表
+    #         class_name, method_name, file, line_num = stack_match.groups()
+    #         method_full_name = f"{class_name}.{method_name}"
+    #         methods.append(process_method_name(method_full_name))
 
     # return methods
     # 去重并保持顺序
@@ -76,40 +37,52 @@ def extract_methods_from_log(log_text):
     return unique_methods
 
 def process_method_name(method):
-    parts = method.split(".")
-    if len(parts) < 2:
-        return method
-    method = f"{parts[-2]}.{parts[-1]}"
-
+    method.replaceAll("$", ".")
     return method
 
 
 # 加载调用图
 def load_call_graph(callgraph_json):
-    # 用于存储调用图的字典
     call_graph = {}
 
-    # 遍历 JSON 数据
-    for method, calls in callgraph_json.items():
-        # 每个方法的值是一个列表，保存该方法调用的所有其他方法
-        method = process_method_name(method)
-        call_graph[method] = []
-
-        # 解析方法调用链
-        for call in calls:
-            # 提取方法调用路径
-            called_method = process_method_name(call.split(" -> ")[1])
-            call_graph[method].append(called_method)
+    # 遍历 JSON 中的键值对
+    for method, called_methods in callgraph_json.items():
+        call_graph[method] = called_methods
     
     return call_graph
 
 # 重构执行路径
 def reconstruct_execution_paths(log_methods, call_graph):
-    execution_paths = []
-    for i in range(len(log_methods) - 2):
-        path = bfs_find_path(log_methods[i], log_methods[i+1], call_graph)
-        if path:
-            execution_paths.append(path)
+    def dfs(method, call_graph, visited):
+        """
+        深度优先搜索，递归构建执行路径。
+        Args:
+            method (str): 当前方法。
+            call_graph (dict): 调用图。
+            visited (set): 已访问方法集合，防止循环。
+        Returns:
+            dict: 以当前方法为根的执行路径。
+        """
+        method = re.sub(r"\(.*?\)", "", method)
+        if method in visited:  # 防止循环调用
+            return None
+        visited.add(method)
+
+        path = {method: []}  # 当前方法为根节点
+        if method in call_graph:  # 如果该方法存在于调用图中
+            for next_method in call_graph[method]:
+                sub_path = dfs(next_method, call_graph, visited)  # 递归构建子路径
+                if sub_path:
+                    path[method].append(sub_path)  # 添加子路径
+        return path
+
+    execution_paths = {}
+    visited = set()
+    for method in log_methods:
+        if method not in visited:
+            path = dfs(method, call_graph, visited)
+            if path:
+                execution_paths.update(path)
     return execution_paths
 
 # 去除重复路径
@@ -126,19 +99,28 @@ def remove_duplicate_paths(execution_paths):
 
 
 # 计算路径分数（path_score）
-def calculate_path_score(path, call_graph):
-    score = 0
+def calculate_path_score(execution_paths, vsm_result, beta=0.2):
+    path_score = 0
 
+    temp = vsm_result.split(": ")
+    vsm_class_name = re.sub("\.java", "", temp[0].split("/")[-1])
+    vsm_score = float(temp[1])
+    for k, v in execution_paths:
+        for path in v:
+            if vsm_class_name in path:
+                path_score = beta * vsm_score
+                return temp[0] + ": " + path_score
 
-    return score
+    return temp[0] + ": " + path_score
+
 
 # 分析路径（包括重构路径和计算分数）
-def analyze_paths(project_name, log_text, report_name):
+def analyze_paths(project_name, log_text, vsm_result,report_name):
     try:
         if log_text:
             # 获得日志中方法
             log_methods = extract_methods_from_log(log_text)
-            callgraph_path = f"../ProcessData/call_graph/{project_name}/{project_name}CallGraph.json"
+            callgraph_path = f"../pathidea/ProcessData/call_graph/{project_name}/{project_name}CallGraph.json"
 
             with open(callgraph_path, 'r', encoding='utf-8') as file:
                 call_graph_json = json.load(file)
@@ -147,25 +129,24 @@ def analyze_paths(project_name, log_text, report_name):
             
             # 获取执行路径
             execution_paths = reconstruct_execution_paths(log_methods, call_graph)
-            
+
             # 去除重复路径
-            unique_paths = remove_duplicate_paths(execution_paths)
-            
-            # 计算路径得分
+            # unique_paths = remove_duplicate_paths(execution_paths)
+
             path_scores = []
-            for path in unique_paths:
-                score = calculate_path_score(path, call_graph)
-                path_scores.append((path, score))
-            
+            # 计算路径得分
+            for item in vsm_result:
+                score = calculate_path_score(execution_paths, item, beta=0.2)
+                path_scores.append(+score)
             # 保存路径和得分到单独的文件
-            output_directory = f"../ProcessData/path_results"
+            output_directory = f"../pathidea/ProcessData/path_results"
             if not os.path.exists(output_directory):
                 os.makedirs(output_directory)
-            
-            output_file_path = f"{output_directory}/{report_name}_execution_paths_scored.txt"
+
+            output_file_path = f"{output_directory}/{report_name}_execution_paths_score.txt"
             with open(output_file_path, "w", encoding="utf-8") as output_file:
-                for path, score in path_scores:
-                    output_file.write(f"Score: {score} -> {' -> '.join([f'{cls}.{method}' for cls, method in path])}\n")
+                for score in path_scores:
+                    output_file.write(f"{score}\n")
     except Exception as e:
         print(f"Error processing bug report {report_name}: {e}")
 
@@ -173,16 +154,22 @@ if __name__ == "__main__":
     # Example for analyzing paths for a specific project
     project_name = "Zookeeper"
     
-    directory = f'../ProcessData/log_texts/{project_name}'
-    if not os.path.exists(directory):
+    log_directory = f'../pathidea/ProcessData/log_texts/{project_name}'
+    vsm_directory = f'../pathidea/ProcessData/vsm_result'
+    if not os.path.exists(log_directory):
         print(f"Directory for {project_name} not found.")
     else:
-        files = [item for item in os.listdir(directory) if os.path.isfile(os.path.join(directory, item))]
+        files = [item for item in os.listdir(log_directory) if os.path.isfile(os.path.join(log_directory, item))]
         for name in files:
             try:
-                with open(f"{directory}/{name}","r") as f:
+                # 读取日志内容
+                with open(f"{log_directory}/{name}", "r") as f:
                     log_text = f.read()
+                # 读取vsm得分
+                vsm_name = name.split("_")[0]+"_token_vsm.txt"
+                with open(f"{vsm_directory}/{vsm_name}", "r") as f:
+                    vsm_result = f.read().split("\n")
                 # Analyze the execution paths and compute scores
-                analyze_paths(project_name, log_text, name.replace("txt", ""))
+                analyze_paths(project_name, log_text, vsm_result, name.replace("txt", ""))
             except Exception as e:
                 print(f"Error processing file {name}: {e}")
