@@ -96,22 +96,40 @@ def remove_duplicate_paths(execution_paths):
             seen_paths.add(path_tuple)
     return unique_paths
 
+def find_class_in_execution_paths(execution_paths, target_class):
+    """
+    在 execution_paths 中查找某个类是否出现过。
 
+    Args:
+        execution_paths (dict): 执行路径的树状结构。
+        target_class (str): 需要查找的类名。
+
+    Returns:
+        bool: 如果找到目标类，返回 True；否则返回 False。
+    """
+    for method, sub_paths in execution_paths.items():
+        # 检查当前方法是否包含目标类名
+        if target_class in method:
+            return True
+        # 递归检查子路径
+        for sub_path in sub_paths:
+            if find_class_in_execution_paths(sub_path, target_class):
+                return True
+    return False
 
 # 计算路径分数（path_score）
 def calculate_path_score(execution_paths, vsm_result, beta=0.2):
-    path_score = 0
 
     temp = vsm_result.split(": ")
     vsm_class_name = re.sub("\.java", "", temp[0].split("/")[-1])
     vsm_score = float(temp[1])
-    for k, v in execution_paths:
-        for path in v:
-            if vsm_class_name in path:
-                path_score = beta * vsm_score
-                return temp[0] + ": " + path_score
+    # print(vsm_class_name)
 
-    return temp[0] + ": " + path_score
+    if find_class_in_execution_paths(execution_paths, vsm_class_name):
+        path_score = beta * vsm_score
+        return temp[0] + ": " + str(path_score)
+
+    return None
 
 
 # 分析路径（包括重构路径和计算分数）
@@ -133,43 +151,43 @@ def analyze_paths(project_name, log_text, vsm_result,report_name):
             # 去除重复路径
             # unique_paths = remove_duplicate_paths(execution_paths)
 
-            path_scores = []
-            # 计算路径得分
-            for item in vsm_result:
-                score = calculate_path_score(execution_paths, item, beta=0.2)
-                path_scores.append(+score)
             # 保存路径和得分到单独的文件
             output_directory = f"../pathidea/ProcessData/path_results"
             if not os.path.exists(output_directory):
                 os.makedirs(output_directory)
 
-            output_file_path = f"{output_directory}/{report_name}_execution_paths_score.txt"
+            output_file_path = f"{output_directory}/{report_name}_paths_score.txt"
+            # 计算路径得分
             with open(output_file_path, "w", encoding="utf-8") as output_file:
-                for score in path_scores:
-                    output_file.write(f"{score}\n")
+                for item in vsm_result:
+                    score = calculate_path_score(execution_paths, item, beta=0.2)
+                    if score:
+                        output_file.write(f"{score}\n")
+
     except Exception as e:
         print(f"Error processing bug report {report_name}: {e}")
 
 if __name__ == "__main__":
     # Example for analyzing paths for a specific project
-    project_name = "Zookeeper"
-    
-    log_directory = f'../pathidea/ProcessData/log_texts/{project_name}'
-    vsm_directory = f'../pathidea/ProcessData/vsm_result'
-    if not os.path.exists(log_directory):
-        print(f"Directory for {project_name} not found.")
-    else:
-        files = [item for item in os.listdir(log_directory) if os.path.isfile(os.path.join(log_directory, item))]
-        for name in files:
-            try:
-                # 读取日志内容
-                with open(f"{log_directory}/{name}", "r") as f:
-                    log_text = f.read()
-                # 读取vsm得分
-                vsm_name = name.split("_")[0]+"_token_vsm.txt"
-                with open(f"{vsm_directory}/{vsm_name}", "r") as f:
-                    vsm_result = f.read().split("\n")
-                # Analyze the execution paths and compute scores
-                analyze_paths(project_name, log_text, vsm_result, name.replace("txt", ""))
-            except Exception as e:
-                print(f"Error processing file {name}: {e}")
+    # project_name = "Zookeeper"
+
+    for project_name in project_names:
+        log_directory = f'../pathidea/ProcessData/log_texts/{project_name}'
+        vsm_directory = f'../pathidea/ProcessData/vsm_result'
+        if not os.path.exists(log_directory):
+            print(f"Directory for {project_name} not found.")
+        else:
+            files = [item for item in os.listdir(log_directory) if os.path.isfile(os.path.join(log_directory, item))]
+            for name in files:
+                try:
+                    # 读取日志内容
+                    with open(f"{log_directory}/{name}", "r") as f:
+                        log_text = f.read()
+                    # 读取vsm得分
+                    vsm_name = name.split("_")[0]+"_token_vsm.txt"
+                    with open(f"{vsm_directory}/{vsm_name}", "r") as f:
+                        vsm_result = f.read().split("\n")
+                    # Analyze the execution paths and compute scores
+                    analyze_paths(project_name, log_text, vsm_result, name.replace("_log_text.txt", ""))
+                except Exception as e:
+                    print(f"Error processing file {name}: {e}")
