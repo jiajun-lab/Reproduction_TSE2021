@@ -10,7 +10,7 @@ nltk.download('stopwords')
 nltk.download('punkt')
 
 
-def preprocess_code(code_str, language):
+def preprocess_code(code_str, language, segment_size):
     """
     对源代码进行预处理，进行标记化、去除特定语言关键词、分割拼接单词、去除停用词以及Porter词干提取。
 
@@ -59,19 +59,23 @@ def preprocess_code(code_str, language):
     porter = PorterStemmer()
     stemmed_tokens = [porter.stem(token) for token in tokens_no_stopwords]
 
-    return stemmed_tokens
+    # Split the stemmed_tokens into segments
+    segmented_tokens = [stemmed_tokens[i:i + segment_size] for i in range(0, len(stemmed_tokens), segment_size)]
+
+    return segmented_tokens
 
 
 def analyze_project_source_code(source_code_directory, language):
     """
-    遍历指定目录中的所有源代码文件，将每个文件的令牌单独保存到对应的txt文件中。
+    遍历指定目录中的所有源代码文件，将每个文件的token单独保存到对应的txt文件中。
 
     参数：
     source_code_directory (str): 源代码目录的路径。
     language (str): 编程语言（如 'java'）。
     """
+    segment_size = 800
     # 创建 source_code_tokens 目录（如果不存在）
-    output_base_dir = '../ProcessData/source_code_tokens'
+    output_base_dir = '../pathidea/ProcessData/source_code_tokens'
     if not os.path.exists(output_base_dir):
         os.makedirs(output_base_dir)
 
@@ -89,9 +93,9 @@ def analyze_project_source_code(source_code_directory, language):
                 relative_path = os.path.relpath(file_path, source_code_directory)
 
                 # 处理代码
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, 'r', encoding='utf-8', errors="replace") as f:
                     code_str = f.read()
-                    tokens = preprocess_code(code_str, language)
+                    tokens = preprocess_code(code_str, language, segment_size)
 
                 # 获取项目名称和类名
                 project_name = os.path.basename(source_code_directory)
@@ -103,12 +107,13 @@ def analyze_project_source_code(source_code_directory, language):
                     os.makedirs(project_dir)
 
                 # 创建类名_tokens.txt 文件
-                output_file = os.path.join(project_dir, f"{class_name}_tokens.txt")
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    # 写入相对路径作为第一行
-                    f.write(relative_path + '\n')
-                    # 写入处理后的tokens
-                    f.write('\n'.join(tokens))
+                for i in range(len(tokens)):
+                    output_file = os.path.join(project_dir, f"{class_name}_{i+1}_tokens.txt")
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        # 写入相对路径作为第一行
+                        f.write(relative_path + '\n')
+                        # 写入处理后的tokens
+                        f.write('\n'.join(tokens[i]))
 
                 print(f"已处理并保存：{output_file}")
 
@@ -117,7 +122,10 @@ if __name__ == "__main__":
     # 指定源代码的目录路径
     projects = ["ActiveMQ", "Hadoop", "HDFS", "Hive", "MAPREDUCE", "Storm", "YARN", "Zookeeper"]
     for project in projects:
-        source_code_directory = '../project_version_in_paper/'+ project  # 请将此路径替换为您的实际路径
+        if project == 'Hadoop':
+            source_code_directory = '../pathidea/project_version_in_paper/' + project + "hadoop-common-project"
+        else:
+            source_code_directory = '../pathidea/project_version_in_paper/' + project
         language = 'java'
 
         # 分析并处理源代码

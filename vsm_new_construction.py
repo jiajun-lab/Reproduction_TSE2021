@@ -3,8 +3,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from multiprocessing import Pool
 
-SEGMENT_SIZE = 800  # 设置分段大小为800个token
-
 
 def get_bug_tokens(base_path):
     # 存储每个错误报告的 tokens 列表
@@ -63,7 +61,7 @@ def get_source_tokens(file_path):
 
 def save_vsm_result(bug_report_name, vsm_results):
     # 创建vsm_result文件夹（如果不存在）
-    output_dir = '../ProcessData/vsm_result'
+    output_dir = '../pathidea/ProcessData/vsm_result'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -102,10 +100,30 @@ def process_source_file(args):
     return (relative_path, similarity)
 
 
+def aggregate_vsm_results(vsm_results):
+    # 定义一个字典，用于聚合同一类的多个tokens文件
+    aggregated_results = {}
+
+    for relative_path, similarity in vsm_results:
+        # 提取类名（假设类名是文件名的第一部分）
+        class_name = relative_path.split('_')[0]
+
+        # 如果字典中没有该类名，直接添加
+        if class_name not in aggregated_results:
+            aggregated_results[class_name] = (relative_path, similarity)
+        else:
+            # 更新为相似度更高的文件
+            if similarity > aggregated_results[class_name][1]:
+                aggregated_results[class_name] = (relative_path, similarity)
+
+    # 返回聚合后的结果
+    return list(aggregated_results.values())
+
+
 if __name__ == '__main__':
 
     # 获取错误报告的 tokens 及对应项目名称和错误报告名称
-    bug_reports_tokens, project_names, bug_report_names = get_bug_tokens("../ProcessData/bug_reports_tokens")
+    bug_reports_tokens, project_names, bug_report_names = get_bug_tokens("../pathidea/ProcessData/bug_reports_tokens")
 
     print(project_names)
     # 定义停用词列表
@@ -117,7 +135,7 @@ if __name__ == '__main__':
         bug_report_text = ' '.join(bug_tokens)
 
         # 获取对应项目下的所有源代码tokens文件
-        source_files = get_source_files("../ProcessData/source_code_tokens", project_name)
+        source_files = get_source_files("../pathidea/ProcessData/source_code_tokens", project_name)
 
         if not source_files:
             print(f"未找到项目 {project_name} 的源代码tokens文件")
@@ -125,7 +143,7 @@ if __name__ == '__main__':
 
         # 准备传递给子进程的参数列表
         args_list = [
-            (bug_report_text, os.path.join("../ProcessData/source_code_tokens", project_name, source_file), stop_words)
+            (bug_report_text, os.path.join("../pathidea/ProcessData/source_code_tokens", project_name, source_file), stop_words)
             for source_file in source_files
         ]
 
@@ -133,11 +151,14 @@ if __name__ == '__main__':
         with Pool(processes=4) as pool:  # 根据您的CPU核心数调整进程数量
             vsm_results = pool.map(process_source_file, args_list)
 
+        # 按类名聚合结果，仅保留相似度最高的文件
+        aggregated_results = aggregate_vsm_results(vsm_results)
+
         # 按相似度从高到低排序
-        vsm_results.sort(key=lambda x: x[1], reverse=True)
+        aggregated_results.sort(key=lambda x: x[1], reverse=True)
 
         # 保存结果到vsm_result文件夹中的对应错误报告txt文件
-        save_vsm_result(bug_report_name, vsm_results)
+        save_vsm_result(bug_report_name, aggregated_results)
 
         # 输出结果
-        print(f"错误报告 {i} ({bug_report_name}) 的相似度分析已完成，并保存到 ../ProcessData/vsm_result/{bug_report_name}_vsm.txt")
+        print(f"错误报告 {i} ({bug_report_name}) 的相似度分析已完成，并保存到 ../pathidea/ProcessData/vsm_result/{bug_report_name}_vsm.txt")
