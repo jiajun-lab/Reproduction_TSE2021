@@ -23,13 +23,13 @@ def extract_stack_traces(bug_report_text):
     return stack_traces
 
 
-def calculate_log_snippet_score(log_snippets):
+def calculate_log_snippet_score(log_snippets, alpha=0.1):
     # 为日志片段中的每个文件分配固定分数0.1，只计算一次
     log_score = defaultdict(float)
     for snippet in log_snippets:
         class_name = snippet[2]  # Fully qualified class name
         file_name = class_name.split('.')[-1] + '.java'  # Derive file name
-        log_score[file_name] = 0.1  # 只计算一次，每个文件分配0.1的分数
+        log_score[file_name] = alpha  # 只计算一次，每个文件分配0.1的分数
     return log_score
 
 
@@ -243,7 +243,7 @@ if __name__ == '__main__':
         处理bug_report并获取该报告的日志和堆栈跟踪信息
     '''
     for project_name in project_names:
-        directory = '../ProcessData/bug_reports/'+ project_name +'/details'
+        directory = '../pathidea/ProcessData/bug_reports/'+ project_name +'/details'
 
         items = os.listdir(directory)
 
@@ -253,16 +253,16 @@ if __name__ == '__main__':
 
         log_scores = []
         for name in files:
-            with open('../ProcessData/bug_reports/' + project_name + '/' + name + '.json', 'r') as f:
+            with open('../pathidea/ProcessData/bug_reports/' + project_name + '/' + name + '.json', 'r') as f:
                 data = json.load(f)
 
             # 判断是否含有log或堆栈跟踪信息
             log_text = get_log_text(data)
             if log_text is not None:
                  # 导出日志
-                if not os.path.exists('log_texts/' + project_name):
-                    os.mkdir('log_texts/' + project_name)
-                with open('log_texts/' + project_name + '/' + name + '_logtext.txt', 'w') as f:
+                # if not os.path.exists('log_texts/' + project_name):
+                #     os.mkdir('log_texts/' + project_name)
+                with open('log_texts/' + name + '_log_text.txt', 'w') as f:
                     f.write(log_text)
 
                 # 分析日志并输出结果
@@ -280,7 +280,7 @@ if __name__ == '__main__':
         print(f"共处理了 {len(log_scores)} 个错误报告。")
 
         # 创建log_result目录（如果不存在）
-        output_dir = '../ProcessData/log_result'
+        output_dir = '../pathidea/ProcessData/log_result'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
