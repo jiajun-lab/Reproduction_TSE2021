@@ -1,4 +1,5 @@
 import os
+import evaluation
 
 
 def extract_name(file_name):
@@ -21,6 +22,13 @@ def read_file_lines(file_path):
         return []
 
 
+def process_vsm_scores(vsm_result):
+    vsm_process_result = {}
+    for item in vsm_result:
+        vsm_score = float(item[1])
+        vsm_process_result[item[0]] = vsm_score
+    return vsm_process_result
+
 def add_scores(vsm_path, log_path, path_path, output_path):
     # 提取文件编号
     vsm_files = {extract_name(file): file for file in os.listdir(vsm_path)}
@@ -39,13 +47,13 @@ def add_scores(vsm_path, log_path, path_path, output_path):
         output_file = os.path.join(output_path, f"{file_id}_total_score.txt")
 
         # 读取每个文件的分数
-        vsm_scores = read_file_lines(vsm_file)
+        vsm_scores = process_vsm_scores(read_file_lines(vsm_file))
         log_scores = read_file_lines(log_file) if log_file else []
         path_scores = read_file_lines(path_file) if path_file else []
 
         # 逐行累加得分
         total_scores = {}
-        for class_path, vsm_score in vsm_scores:
+        for class_path, vsm_score in vsm_scores.items():
             class_name = class_path.split("/")[-1]  # 提取类名
 
             # 初始化类路径的得分
