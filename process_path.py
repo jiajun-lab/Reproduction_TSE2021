@@ -1,7 +1,8 @@
 import json
 import re
 import os
-from collections import deque
+
+import evaluation
 
 
 project_names = ["ActiveMQ", "Hadoop", "HDFS", "Hive", "MAPREDUCE", "Storm", "YARN", "Zookeeper"]
@@ -40,6 +41,16 @@ def process_method_name(method):
     method.replaceAll("$", ".")
     return method
 
+def process_vsm_scores(vsm_result):
+    vsm_process_result = {}
+    for line in vsm_result:
+        if line != "":
+            temp = line.split(": ")
+            # vsm_class_name = re.sub("\.java", "", temp[0].split("/")[-1])
+            vsm_class_name = temp[0]
+            vsm_score = float(temp[1])
+            vsm_process_result[vsm_class_name]= vsm_score
+    return vsm_process_result
 
 # 加载调用图
 def load_call_graph(callgraph_json):
@@ -118,22 +129,20 @@ def find_class_in_execution_paths(execution_paths, target_class):
     return False
 
 # 计算路径分数（path_score）
-def calculate_path_score(execution_paths, vsm_result, beta=0.2):
-
-    temp = vsm_result.split(": ")
-    vsm_class_name = re.sub("\.java", "", temp[0].split("/")[-1])
-    vsm_score = float(temp[1])
+def calculate_path_score(execution_paths, vsm_result_key, vsm_result_value, beta=0.2):
+    vsm_class_name = re.sub("\.java", "", vsm_result_key.split("/")[-1])
+    vsm_score = float(vsm_result_value)
     # print(vsm_class_name)
 
     if find_class_in_execution_paths(execution_paths, vsm_class_name):
         path_score = beta * vsm_score
-        return temp[0] + ": " + str(path_score)
+        return vsm_result_key + ": " + str(path_score)
 
     return None
 
 
 # 分析路径（包括重构路径和计算分数）
-def analyze_paths(project_name, log_text, vsm_result,report_name):
+def analyze_paths(project_name, log_text, vsm_result, report_name):
     try:
         if log_text:
             # 获得日志中方法
@@ -159,8 +168,8 @@ def analyze_paths(project_name, log_text, vsm_result,report_name):
             output_file_path = f"{output_directory}/{report_name}_paths_score.txt"
             # 计算路径得分
             with open(output_file_path, "w", encoding="utf-8") as output_file:
-                for item in vsm_result:
-                    score = calculate_path_score(execution_paths, item, beta=0.2)
+                for k,v in vsm_result.items():
+                    score = calculate_path_score(execution_paths, k, v, beta=0.2)
                     if score:
                         output_file.write(f"{score}\n")
 
@@ -187,7 +196,9 @@ if __name__ == "__main__":
                     vsm_name = name.split("_")[0]+"_token_vsm.txt"
                     with open(f"{vsm_directory}/{vsm_name}", "r") as f:
                         vsm_result = f.read().split("\n")
+                    process_vsm_score = evaluation.normalize_vsm_scores(process_vsm_scores(vsm_result))
                     # Analyze the execution paths and compute scores
-                    analyze_paths(project_name, log_text, vsm_result, name.replace("_log_text.txt", ""))
+                    analyze_paths(project_name, log_text, process_vsm_score, name.replace("_report_text.txt", ""))
+                    print(f"Success processing file {name}")
                 except Exception as e:
                     print(f"Error processing file {name}: {e}")
